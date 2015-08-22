@@ -182,6 +182,22 @@ namespace Nocco {
 		// You can also specify a list of regular expression patterns and replacements. This
 		// translates things like
 		// [XML documentation comments](http://msdn.microsoft.com/en-us/library/b2s063f7.aspx) into Markdown.
+        private static Language _csharp = new Language
+        {
+            Name = "csharp",
+            Symbol = "///?",
+            Ignores = new List<string> {
+					"Designer.cs"
+				},
+            MarkdownMaps = new Dictionary<string, string> {
+					{ @"<c>([^<]*)</c>", "`$1`" },
+					{ @"<param[^\>]*name=""([^""]*)""[^\>]*>([^<]*)</param>", "**argument** *$1*: $2" + Environment.NewLine },
+					{ @"<returns>([^<]*)</returns>", "**returns**: $1" + Environment.NewLine },
+					{ @"<see\s*cref=""([^""]*)""\s*/>", "see `$1`"},
+					{ @"(</?example>|</?summary>|</?remarks>)", "" },
+				}
+        };
+
 		private static Dictionary<string, Language> Languages = new Dictionary<string, Language> {
 			{ ".js", new Language {
 				Name = "javascript",
@@ -190,20 +206,12 @@ namespace Nocco {
 					"min.js"
 				}
 			}},
-			{ ".cs", new Language {
-				Name = "csharp",
-				Symbol = "///?",
-				Ignores = new List<string> {
-					"Designer.cs"
-				},
-				MarkdownMaps = new Dictionary<string, string> {
-					{ @"<c>([^<]*)</c>", "`$1`" },
-					{ @"<param[^\>]*name=""([^""]*)""[^\>]*>([^<]*)</param>", "**argument** *$1*: $2" + Environment.NewLine },
-					{ @"<returns>([^<]*)</returns>", "**returns**: $1" + Environment.NewLine },
-					{ @"<see\s*cref=""([^""]*)""\s*/>", "see `$1`"},
-					{ @"(</?example>|</?summary>|</?remarks>)", "" },
-				}
-			}},
+			{ ".cs", _csharp},
+            // support for LinqPad files. Supports C# and F#
+            { ".linq", _csharp},
+            // support for F# files. not great bu serviceable for now
+            { ".fs", _csharp},
+            { ".fsx", _csharp},
 			{ ".vb", new Language {
 				Name = "vb.net",
 				Symbol = "'+",
@@ -219,8 +227,8 @@ namespace Nocco {
 				}
 			}}
 		};
-
-		// Get the current language we're documenting, based on the extension.
+        
+	    // Get the current language we're documenting, based on the extension.
 		private static Language GetLanguage(string source) {
 			var extension = Path.GetExtension(source);
 			return Languages.ContainsKey(extension) ? Languages[extension] : null;
@@ -243,6 +251,8 @@ namespace Nocco {
 		public static void Generate(string[] targets) {
 			if (targets.Length > 0)
 			{
+                // Current path: `nocco.exe . *.cs`
+                // Absolute path: `nocco.exe c:\temp *.cs`
                 _outputLocation = Path.Combine(targets[0], "docs");
                 Directory.CreateDirectory(_outputLocation);
 
