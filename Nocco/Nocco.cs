@@ -48,8 +48,9 @@ namespace Nocco {
 	class Nocco {
 		private static string _executingDirectory;
 		private static List<string> _files;
-		private static Type _templateType;
-
+        private static Type _templateType;
+        private static string _outputLocation;
+        
 		//### Main Documentation Generation Functions
 
 		// Generate the documentation for a source file by reading it in, splitting it
@@ -231,28 +232,31 @@ namespace Nocco {
 			var dirs = Path.GetDirectoryName(filepath).Substring(1).Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
 			depth = dirs.Length;
 
-			var dest = Path.Combine("docs", string.Join(Path.DirectorySeparatorChar.ToString(), dirs)).ToLower();
+			var dest = Path.Combine(_outputLocation, string.Join(Path.DirectorySeparatorChar.ToString(), dirs)).ToLower();
 			Directory.CreateDirectory(dest);
 
-			return Path.Combine("docs", Path.ChangeExtension(filepath, "html").ToLower());
+            return Path.Combine(_outputLocation, Path.ChangeExtension(filepath, "html").ToLower());
 		}
 
 		// Find all the files that match the pattern(s) passed in as arguments and
 		// generate documentation for each one.
 		public static void Generate(string[] targets) {
-			if (targets.Length > 0) {
-				Directory.CreateDirectory("docs");
+			if (targets.Length > 0)
+			{
+                _outputLocation = Path.Combine(targets[0], "docs");
+                Directory.CreateDirectory(_outputLocation);
 
 				_executingDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-				File.Copy(Path.Combine(_executingDirectory, "Resources", "Nocco.css"), Path.Combine("docs", "nocco.css"), true);
-				File.Copy(Path.Combine(_executingDirectory, "Resources", "prettify.js"), Path.Combine("docs", "prettify.js"), true);
+                File.Copy(Path.Combine(_executingDirectory, "Resources", "Nocco.css"), Path.Combine(_outputLocation, "nocco.css"), true);
+                File.Copy(Path.Combine(_executingDirectory, "Resources", "prettify.js"), Path.Combine(_outputLocation, "prettify.js"), true);
 
 				_templateType = SetupRazorTemplate();
 
 				_files = new List<string>();
-				foreach (var target in targets) {
+			    var targetPatterns = targets.Skip(1);
+				foreach (var target in targetPatterns) {
 					_files.AddRange(Directory.GetFiles(".", target, SearchOption.AllDirectories).Where(filename => {
-						var language = GetLanguage(Path.GetFileName(filename)) ;
+						var language = GetLanguage(Path.GetFileName(filename));
 
 						if (language == null)
 							return false;
